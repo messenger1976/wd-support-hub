@@ -1,0 +1,25 @@
+# CodeIgniter
+application/logs/*
+!application/logs/index.html
+application/cache/*
+!application/cache/index.html
+
+# Uploads (user-generated files)
+uploads/*
+!uploads/index.html
+
+# Config with sensitive data (keep a sample if needed)
+# config.php
+
+# OS & editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Composer
+vendor/
+composer.lock
+
+# Node (if any)
+node_modules/
