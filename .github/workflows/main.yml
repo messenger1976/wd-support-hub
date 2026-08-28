@@ -27,14 +27,16 @@ jobs:
             **/.git*
             **/.git*/**
             config.php
-            uploads/**
-            **/application/cache/**
-            **/application/logs/**
+            uploads/**/*
+            !uploads/index.html
+            !uploads/.htaccess
             **/.vscode/**
             **/.idea/**
             .ftp-deploy-sync-state.json
             .git-ftp.log
             .project
             .buildpath
-            .htaccess
             error_log
+            DEPLOY.md
+            config.php.sample
+            README.md

@@ -1,15 +1,10 @@
-# CodeIgniter
-application/logs/*
-!application/logs/index.html
-application/cache/*
-!application/cache/index.html
-
-# Uploads (user-generated files)
-uploads/*
+# Uploads (user-generated attachment files)
+uploads/**/*
 !uploads/index.html
+!uploads/.htaccess
 
-# Config with sensitive data (keep a sample if needed)
-# config.php
+# Local config (use config.php.sample as template)
+config.php
 
 # OS & editor files
 .DS_Store

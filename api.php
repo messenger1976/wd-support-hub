@@ -23,7 +23,7 @@ if ($action === '') {
 	}
 }
 
-$db->query("UPDATE tbl_support_company SET last_seen = '".hub_esc(hub_now())."' WHERE id = ".(int) $company['id']);
+$db->query("UPDATE wd_support_company SET last_seen = '".hub_esc(hub_now())."' WHERE id = ".(int) $company['id']);
 
 if ($action === 'push' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 	$raw = file_get_contents('php://input');
@@ -46,7 +46,7 @@ if ($action === 'poll') {
 	$since = isset($_GET['since']) ? $_GET['since'] : '1970-01-01 00:00:00';
 	$since = preg_replace('/[^0-9:\- ]/', '', $since);
 	$messages = array();
-	$q = $db->query("SELECT * FROM tbl_support_message WHERE company_code = '".hub_esc($code)."' AND sender_side = 'support' AND created_at > '".hub_esc($since)."' ORDER BY id ASC LIMIT 200");
+	$q = $db->query("SELECT * FROM wd_support_message WHERE company_code = '".hub_esc($code)."' AND sender_side = 'support' AND created_at > '".hub_esc($since)."' ORDER BY id ASC LIMIT 200");
 	while ($q && $row = $q->fetch_assoc()) {
 		$item = array(
 			'uuid' => $row['uuid'],
@@ -60,7 +60,7 @@ if ($action === 'poll') {
 		if ( ! empty($row['attachment_path']) && is_file($row['attachment_path'])) {
 			$item['attachment_base64'] = base64_encode(file_get_contents($row['attachment_path']));
 		}
-		$t = $db->query("SELECT status FROM tbl_support_ticket WHERE uuid = '".hub_esc($row['ticket_uuid'])."' LIMIT 1");
+		$t = $db->query("SELECT status FROM wd_support_ticket WHERE uuid = '".hub_esc($row['ticket_uuid'])."' LIMIT 1");
 		$tr = $t ? $t->fetch_assoc() : NULL;
 		if ($tr) {
 			$item['ticket_status'] = $tr['status'];
@@ -68,7 +68,7 @@ if ($action === 'poll') {
 		$messages[] = $item;
 	}
 	$tickets = array();
-	$tq = $db->query("SELECT uuid, status, updated_at FROM tbl_support_ticket WHERE company_code = '".hub_esc($code)."' AND updated_at > '".hub_esc($since)."'");
+	$tq = $db->query("SELECT uuid, status, updated_at FROM wd_support_ticket WHERE company_code = '".hub_esc($code)."' AND updated_at > '".hub_esc($since)."'");
 	while ($tq && $tr = $tq->fetch_assoc()) {
 		$tickets[] = $tr;
 	}
@@ -79,7 +79,7 @@ hub_json(array('ok' => FALSE, 'error' => 'Unknown action'), 404);
 
 function hub_upsert_ticket($db, $code, $ticket) {
 	$uuid = hub_esc($ticket['uuid']);
-	$exists = $db->query("SELECT id FROM tbl_support_ticket WHERE uuid = '".$uuid."' LIMIT 1");
+	$exists = $db->query("SELECT id FROM wd_support_ticket WHERE uuid = '".$uuid."' LIMIT 1");
 	$row = $exists ? $exists->fetch_assoc() : NULL;
 	$now = hub_esc(hub_now());
 	$fields = array(
@@ -98,14 +98,14 @@ function hub_upsert_ticket($db, $code, $ticket) {
 		'updated_at' => $now
 	);
 	if ($row) {
-		$db->query("UPDATE tbl_support_ticket SET
+		$db->query("UPDATE wd_support_ticket SET
 			ticket_no='{$fields['ticket_no']}', subject='{$fields['subject']}', category='{$fields['category']}',
 			priority='{$fields['priority']}', status='{$fields['status']}', user_name='{$fields['user_name']}',
 			usertype='{$fields['usertype']}', last_message_at='{$fields['last_message_at']}',
 			unread_support=1, updated_at='{$fields['updated_at']}'
 			WHERE id=".(int) $row['id']);
 	} else {
-		$db->query("INSERT INTO tbl_support_ticket (uuid, company_code, ticket_no, subject, category, priority, status, user_id, user_name, usertype, last_message_at, unread_client, unread_support, created_at, updated_at)
+		$db->query("INSERT INTO wd_support_ticket (uuid, company_code, ticket_no, subject, category, priority, status, user_id, user_name, usertype, last_message_at, unread_client, unread_support, created_at, updated_at)
 			VALUES ('".$uuid."','{$fields['company_code']}','{$fields['ticket_no']}','{$fields['subject']}','{$fields['category']}','{$fields['priority']}','{$fields['status']}',{$fields['user_id']},'{$fields['user_name']}','{$fields['usertype']}','{$fields['last_message_at']}',0,1,'{$now}','{$fields['updated_at']}')");
 	}
 }
@@ -113,7 +113,7 @@ function hub_upsert_ticket($db, $code, $ticket) {
 function hub_upsert_message($db, $code, $payload) {
 	$msg = $payload['message'];
 	$uuid = hub_esc($msg['uuid']);
-	$exists = $db->query("SELECT id FROM tbl_support_message WHERE uuid = '".$uuid."' LIMIT 1");
+	$exists = $db->query("SELECT id FROM wd_support_message WHERE uuid = '".$uuid."' LIMIT 1");
 	if ($exists && $exists->fetch_assoc()) {
 		return;
 	}
@@ -136,7 +136,7 @@ function hub_upsert_message($db, $code, $payload) {
 	$t_uuid = hub_esc($payload['ticket_uuid']);
 	$apath = $path ? "'".hub_esc($path)."'" : 'NULL';
 	$aname = $name ? "'".hub_esc($name)."'" : 'NULL';
-	$db->query("INSERT INTO tbl_support_message (uuid, ticket_uuid, company_code, sender_side, sender_name, body, attachment_path, attachment_name, created_at)
+	$db->query("INSERT INTO wd_support_message (uuid, ticket_uuid, company_code, sender_side, sender_name, body, attachment_path, attachment_name, created_at)
 		VALUES ('".$uuid."','".$t_uuid."','".hub_esc($code)."','".$side."','".$sname."','".$body."',".$apath.",".$aname.",'".$created."')");
-	$db->query("UPDATE tbl_support_ticket SET unread_support=1, last_message_at='".$created."', updated_at='".hub_esc(hub_now())."' WHERE uuid='".$t_uuid."'");
+	$db->query("UPDATE wd_support_ticket SET unread_support=1, last_message_at='".$created."', updated_at='".hub_esc(hub_now())."' WHERE uuid='".$t_uuid."'");
 }

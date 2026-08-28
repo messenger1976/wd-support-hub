@@ -1,6 +1,6 @@
 <IfModule mod_rewrite.c>
  RewriteEngine On
- RewriteBase /wd-support-hub/
+ RewriteBase /
  RewriteRule ^api/push$ api.php?action=push [L,QSA]
  RewriteRule ^api/poll$ api.php?action=poll [L,QSA]
  RewriteCond %{REQUEST_FILENAME} !-f

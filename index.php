@@ -20,7 +20,7 @@ if ($action === 'login' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 	$pass = (string) $_POST['password'];
 	$error = 'Invalid username or password.';
 	if ($db && $user !== '') {
-		$stmt = $db->prepare('SELECT * FROM tbl_support_hub_user WHERE username = ? LIMIT 1');
+		$stmt = $db->prepare('SELECT * FROM wd_support_hub_user WHERE username = ? LIMIT 1');
 		$stmt->bind_param('s', $user);
 		$stmt->execute();
 		$row = $stmt->get_result()->fetch_assoc();
@@ -94,7 +94,7 @@ $me = hub_user();
 if ($action === 'tickets') {
 	$company = isset($_GET['company']) ? $_GET['company'] : '';
 	$q = isset($_GET['q']) ? $_GET['q'] : '';
-	$sql = "SELECT t.*, c.name AS company_name FROM tbl_support_ticket t LEFT JOIN tbl_support_company c ON c.code = t.company_code WHERE 1=1";
+	$sql = "SELECT t.*, c.name AS company_name FROM wd_support_ticket t LEFT JOIN wd_support_company c ON c.code = t.company_code WHERE 1=1";
 	if ($company !== '' && $company !== 'all') {
 		$sql .= " AND t.company_code = '".hub_esc($company)."'";
 	}
@@ -112,14 +112,14 @@ if ($action === 'tickets') {
 
 if ($action === 'thread') {
 	$uuid = isset($_GET['uuid']) ? $_GET['uuid'] : '';
-	$t = $db->query("SELECT t.*, c.name AS company_name FROM tbl_support_ticket t LEFT JOIN tbl_support_company c ON c.code = t.company_code WHERE t.uuid='".hub_esc($uuid)."' LIMIT 1");
+	$t = $db->query("SELECT t.*, c.name AS company_name FROM wd_support_ticket t LEFT JOIN wd_support_company c ON c.code = t.company_code WHERE t.uuid='".hub_esc($uuid)."' LIMIT 1");
 	$ticket = $t ? $t->fetch_assoc() : NULL;
 	if ( ! $ticket) {
 		hub_json(array('ok' => FALSE, 'error' => 'Not found'));
 	}
-	$db->query("UPDATE tbl_support_ticket SET unread_support=0 WHERE uuid='".hub_esc($uuid)."'");
+	$db->query("UPDATE wd_support_ticket SET unread_support=0 WHERE uuid='".hub_esc($uuid)."'");
 	$msgs = array();
-	$m = $db->query("SELECT * FROM tbl_support_message WHERE ticket_uuid='".hub_esc($uuid)."' ORDER BY id ASC");
+	$m = $db->query("SELECT * FROM wd_support_message WHERE ticket_uuid='".hub_esc($uuid)."' ORDER BY id ASC");
 	while ($m && $row = $m->fetch_assoc()) {
 		if ( ! empty($row['attachment_path'])) {
 			$row['attachment_url'] = 'index.php?action=attachment&msg='.rawurlencode($row['uuid']);
@@ -132,7 +132,7 @@ if ($action === 'thread') {
 if ($action === 'send' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 	$uuid = isset($_POST['uuid']) ? $_POST['uuid'] : '';
 	$body = isset($_POST['body']) ? trim($_POST['body']) : '';
-	$t = $db->query("SELECT * FROM tbl_support_ticket WHERE uuid='".hub_esc($uuid)."' LIMIT 1");
+	$t = $db->query("SELECT * FROM wd_support_ticket WHERE uuid='".hub_esc($uuid)."' LIMIT 1");
 	$ticket = $t ? $t->fetch_assoc() : NULL;
 	if ( ! $ticket) {
 		hub_json(array('ok' => FALSE, 'error' => 'Ticket not found'));
@@ -156,10 +156,10 @@ if ($action === 'send' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 	$muuid = hub_uuid();
 	$apath = $path ? "'".hub_esc($path)."'" : 'NULL';
 	$anamesql = $aname ? "'".hub_esc($aname)."'" : 'NULL';
-	$db->query("INSERT INTO tbl_support_message (uuid, ticket_uuid, company_code, sender_side, sender_name, body, attachment_path, attachment_name, created_at)
+	$db->query("INSERT INTO wd_support_message (uuid, ticket_uuid, company_code, sender_side, sender_name, body, attachment_path, attachment_name, created_at)
 		VALUES ('".hub_esc($muuid)."','".hub_esc($uuid)."','".hub_esc($ticket['company_code'])."','support','".hub_esc($me['display_name'])."','".hub_esc($body)."',".$apath.",".$anamesql.",'".hub_esc($now)."')");
 	$status = $ticket['status'] === 'closed' ? 'closed' : 'waiting_client';
-	$db->query("UPDATE tbl_support_ticket SET status='".hub_esc($status)."', unread_client=1, unread_support=0, last_message_at='".hub_esc($now)."', updated_at='".hub_esc($now)."' WHERE uuid='".hub_esc($uuid)."'");
+	$db->query("UPDATE wd_support_ticket SET status='".hub_esc($status)."', unread_client=1, unread_support=0, last_message_at='".hub_esc($now)."', updated_at='".hub_esc($now)."' WHERE uuid='".hub_esc($uuid)."'");
 	hub_json(array('ok' => TRUE));
 }
 
@@ -170,13 +170,13 @@ if ($action === 'set_status' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 	if ( ! in_array($status, $ok, TRUE)) {
 		hub_json(array('ok' => FALSE, 'error' => 'Invalid status'));
 	}
-	$db->query("UPDATE tbl_support_ticket SET status='".hub_esc($status)."', updated_at='".hub_esc(hub_now())."' WHERE uuid='".hub_esc($uuid)."'");
+	$db->query("UPDATE wd_support_ticket SET status='".hub_esc($status)."', updated_at='".hub_esc(hub_now())."' WHERE uuid='".hub_esc($uuid)."'");
 	hub_json(array('ok' => TRUE));
 }
 
 if ($action === 'attachment') {
 	$uuid = isset($_GET['msg']) ? $_GET['msg'] : '';
-	$m = $db->query("SELECT * FROM tbl_support_message WHERE uuid='".hub_esc($uuid)."' LIMIT 1");
+	$m = $db->query("SELECT * FROM wd_support_message WHERE uuid='".hub_esc($uuid)."' LIMIT 1");
 	$row = $m ? $m->fetch_assoc() : NULL;
 	if ( ! $row || empty($row['attachment_path']) || ! is_file($row['attachment_path'])) {
 		http_response_code(404);
@@ -192,7 +192,7 @@ if ($action === 'attachment') {
 
 $companies = array();
 if ($db) {
-	$cq = $db->query('SELECT code, name FROM tbl_support_company ORDER BY name');
+	$cq = $db->query('SELECT code, name FROM wd_support_company ORDER BY name');
 	while ($cq && $row = $cq->fetch_assoc()) {
 		$companies[] = $row;
 	}

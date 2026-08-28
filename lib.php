@@ -70,7 +70,7 @@ function hub_company_by_token($token) {
 	if ( ! $db || $token === '') {
 		return NULL;
 	}
-	$stmt = $db->prepare('SELECT * FROM tbl_support_company WHERE token = ? LIMIT 1');
+	$stmt = $db->prepare('SELECT * FROM wd_support_company WHERE token = ? LIMIT 1');
 	$stmt->bind_param('s', $token);
 	$stmt->execute();
 	$res = $stmt->get_result();

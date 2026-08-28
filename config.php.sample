@@ -1,0 +1,16 @@
+<?php
+/*
+| Copy to config.php and edit for this server.
+| config.php is not deployed by CI (see DEPLOY.md).
+*/
+
+$hub_config = array(
+	'db_host' => 'localhost',
+	'db_user' => 'your_db_user',
+	'db_pass' => 'your_db_password',
+	'db_name' => 'wd_support_hub',
+	'base_url' => 'https://support-hub.example.com/',
+	'sa4_url' => 'https://cdn.example.com/smartadmin-html-full/dist/',
+	'session_name' => 'wd_support_hub',
+	'upload_dir' => __DIR__ . '/uploads/'
+);
