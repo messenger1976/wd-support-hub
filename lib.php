@@ -71,6 +71,9 @@ function hub_company_by_token($token) {
 		return NULL;
 	}
 	$stmt = $db->prepare('SELECT * FROM wd_support_company WHERE token = ? LIMIT 1');
+	if ( ! $stmt) {
+		return NULL;
+	}
 	$stmt->bind_param('s', $token);
 	$stmt->execute();
 	$res = $stmt->get_result();
