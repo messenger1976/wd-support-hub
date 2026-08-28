@@ -1,0 +1,40 @@
+name: 🚀 Deploy WD Support Hub on push
+
+on:
+  push:
+    branches:
+      - master
+      - main
+  workflow_dispatch:
+
+jobs:
+  web-deploy:
+    name: 🎉 Deploy WD Support Hub Server
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: 🚚 Get latest code
+        uses: actions/checkout@v4
+      
+      - name: 📂 Sync files via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: support-hub.bohollander.com
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          server-dir: ${{ secrets.FTP_SERVER_DIR || '/' }}
+          exclude: |
+            **/.git*
+            **/.git*/**
+            config.php
+            uploads/**
+            **/application/cache/**
+            **/application/logs/**
+            **/.vscode/**
+            **/.idea/**
+            .ftp-deploy-sync-state.json
+            .git-ftp.log
+            .project
+            .buildpath
+            .htaccess
+            error_log
