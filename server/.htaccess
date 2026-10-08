@@ -1,0 +1,8 @@
+# server/ holds .env and source; Node reads it from disk, the web server must never serve it.
+<IfModule mod_authz_core.c>
+	Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+	Order allow,deny
+	Deny from all
+</IfModule>

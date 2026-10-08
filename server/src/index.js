@@ -86,12 +86,24 @@ app.use((err, req, res, next) => {
 	return res.status(500).json({ ok: false, error: dbDown ? 'Hub database is not available.' : 'Server error.' });
 });
 
-app.listen(config.port, async () => {
+// Express 5 passes listen errors (e.g. EADDRINUSE) to this callback instead of throwing.
+app.listen(config.port, async (listenErr) => {
+	if (listenErr) {
+		console.error(`Cannot listen on port ${config.port}: ${listenErr.code || ''} ${listenErr.message}`);
+		process.exit(1);
+	}
 	console.log(`WD Support Hub listening on port ${config.port} (${config.appEnv}, TZ ${config.timezone})`);
+	const dbTarget = config.db.socketPath || `${config.db.host}:${config.db.port}`;
 	try {
 		await pool.query('SELECT 1');
+		console.log(`[db] connected to ${dbTarget}/${config.db.database}`);
 	} catch (err) {
-		console.error(`[db] cannot reach MySQL ${config.db.host}/${config.db.database}: ${err.message}`);
+		// "localhost" can fail on both ::1 and 127.0.0.1 as an AggregateError with an empty message.
+		const detail = [err, ...(err.errors || [])]
+			.map((e) => [e.code, e.address && `${e.address}:${e.port}`, e.message].filter(Boolean).join(' '))
+			.filter(Boolean)
+			.join(' | ');
+		console.error(`[db] cannot reach MySQL ${dbTarget}/${config.db.database}: ${detail}`);
 	}
 	console.log(pushEnabled() && firebaseWebConfig()
 		? '[firebase] push notifications enabled'

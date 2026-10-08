@@ -51,6 +51,8 @@ export const config = {
 	db: {
 		host: env.DB_HOST || 'localhost',
 		port: int('DB_PORT', 3306),
+		// Unix socket (e.g. /var/run/mysqld/mysqld.sock); when set, host/port are ignored.
+		...(env.DB_SOCKET ? { socketPath: env.DB_SOCKET } : {}),
 		user: env.DB_USER || 'root',
 		password: env.DB_PASS || '',
 		database: env.DB_NAME || 'wd_support_hub',
