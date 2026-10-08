@@ -62,7 +62,7 @@ function hub_bearer_token() {
 	if (stripos($hdr, 'Bearer ') === 0) {
 		return trim(substr($hdr, 7));
 	}
-	return '';
+	return isset($_SERVER['HTTP_X_WD_TOKEN']) ? trim($_SERVER['HTTP_X_WD_TOKEN']) : '';
 }
 
 function hub_company_by_token($token) {

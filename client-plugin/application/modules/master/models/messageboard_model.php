@@ -332,7 +332,8 @@ class messageboard_model extends CI_Model {
 			$ch = curl_init($url);
 			$headers = array(
 				'Accept: application/json',
-				'Authorization: Bearer '.$token
+				'Authorization: Bearer '.$token,
+				'X-WD-Token: '.$token
 			);
 			if ($payload !== NULL) {
 				$headers[] = 'Content-Type: application/json';
@@ -357,7 +358,7 @@ class messageboard_model extends CI_Model {
 		$opts = array(
 			'http' => array(
 				'method' => $method,
-				'header' => "Accept: application/json\r\nAuthorization: Bearer ".$token."\r\n",
+				'header' => "Accept: application/json\r\nAuthorization: Bearer ".$token."\r\nX-WD-Token: ".$token."\r\n",
 				'timeout' => 8,
 				'ignore_errors' => TRUE
 			)

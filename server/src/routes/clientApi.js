@@ -21,8 +21,14 @@ const jsonBody = express.json({ limit: '30mb', type: () => true });
 
 async function companyAuth(req, res, next) {
 	const header = req.get('Authorization') || '';
-	const token = /^Bearer\s+/i.test(header) ? header.replace(/^Bearer\s+/i, '').trim() : '';
-	const company = token ? await one('SELECT * FROM wd_support_company WHERE token = ? LIMIT 1', [token]) : null;
+	// Some cPanel/Apache proxies drop Authorization before it reaches Node; X-WD-Token survives.
+	const token = /^Bearer\s+/i.test(header)
+		? header.replace(/^Bearer\s+/i, '').trim()
+		: String(req.get('X-WD-Token') || '').trim();
+	if (!token) {
+		return res.status(401).json({ ok: false, error: 'Invalid company token (no token reached the hub).' });
+	}
+	const company = await one('SELECT * FROM wd_support_company WHERE token = ? LIMIT 1', [token]);
 	if (!company) {
 		return res.status(401).json({ ok: false, error: 'Invalid company token.' });
 	}
