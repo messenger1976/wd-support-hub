@@ -26,6 +26,16 @@ The v2 hub is a **Node.js** app (Express API + built React UI) on **MySQL**. It 
 8. **Sign in** at `BASE_URL`: default **superadmin** / **SuperAdmin@2026** — change it under **My account**. Click **Enable notifications**.
 9. **Staff:** **Users → Add user** for each support person. Pick a role (Support Agent for day-to-day support, Viewer for management read-only) and the WDs they handle. Adjust roles under **Roles & Permissions** if needed.
 
+## Updating production without SSH (cPanel)
+
+The FTP workflow below does **not** update the Node hub, so after a change:
+
+1. Locally: `npm run build` (repo root).
+2. cPanel **Setup Node.js App** → note the hub's **Application root** (the folder with `package.json`).
+3. cPanel **File Manager** → in that folder, upload a zip of `web/dist/` plus any changed `server/src/` files (paths kept relative to the repo root) → **Extract**, overwriting → delete the zip.
+4. **Setup Node.js App → Restart** (required whenever `server/` changed). If `package.json` dependencies changed, click **Run NPM Install** first.
+5. Open the hub and reload once or twice so the new service worker takes over.
+
 ## Installable app (PWA) and branding
 
 - Logo source: `web/public/logo.svg` (rounded tile) and `web/public/icons/maskable.svg` (full-bleed, for Android/iOS masks). `favicon.ico` and the PNG icons in `web/public/icons/` are rendered from these two SVGs — re-render them if the logo changes.
