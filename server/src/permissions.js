@@ -15,6 +15,17 @@ export const PERMISSION_GROUPS = [
 		],
 	},
 	{
+		module: 'board',
+		label: 'Message Board',
+		actions: [
+			{ key: 'board.view', label: 'View' },
+			{ key: 'board.create', label: 'Create / edit drafts' },
+			{ key: 'board.publish', label: 'Publish / schedule / archive' },
+			{ key: 'board.delete', label: 'Delete' },
+			{ key: 'board.stats', label: 'View read statistics' },
+		],
+	},
+	{
 		module: 'companies',
 		label: 'WD Setup',
 		actions: [

@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useState } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { api, onUnauthorized } from './api.js';
 import { disablePush } from './push.js';
 import { can } from './lib/format.js';
 import Layout from './components/Layout.jsx';
-import { Forbidden } from './components/ui.jsx';
+import { Forbidden, Spinner } from './components/ui.jsx';
 import Login from './pages/Login.jsx';
 import ForgotPassword from './pages/ForgotPassword.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
@@ -16,7 +16,11 @@ import CompanyForm from './pages/CompanyForm.jsx';
 import Users from './pages/Users.jsx';
 import Roles from './pages/Roles.jsx';
 import AuditLog from './pages/AuditLog.jsx';
+import BoardList from './pages/BoardList.jsx';
 import Account from './pages/Account.jsx';
+
+// The compose page carries the rich-text editor; load it only when opened.
+const BoardForm = lazy(() => import('./pages/BoardForm.jsx'));
 
 function RequirePerm({ user, perm, children }) {
 	const keys = Array.isArray(perm) ? perm : [perm];
@@ -31,6 +35,7 @@ function Home({ user }) {
 	if (can(user, 'dashboard.view')) return <Navigate to="/dashboard" replace />;
 	if (can(user, 'inbox.view')) return <Navigate to="/inbox" replace />;
 	if (can(user, 'reports.view')) return <Navigate to="/reports" replace />;
+	if (can(user, 'board.view')) return <Navigate to="/message-board" replace />;
 	return <Navigate to="/account" replace />;
 }
 
@@ -75,6 +80,9 @@ export default function App() {
 				<Route path="inbox" element={guard('inbox.view', <Inbox user={user} />)} />
 				<Route path="reports" element={guard('reports.view', <Reports user={user} />)} />
 				<Route path="reports/:type" element={guard('reports.view', <Reports user={user} />)} />
+				<Route path="message-board" element={guard('board.view', <BoardList user={user} />)} />
+				<Route path="message-board/new" element={guard('board.create', <Suspense fallback={<Spinner />}><BoardForm user={user} /></Suspense>)} />
+				<Route path="message-board/:uuid" element={guard('board.view', <Suspense fallback={<Spinner />}><BoardForm user={user} /></Suspense>)} />
 				<Route path="water-districts" element={guard('companies.view', <CompanyList user={user} />)} />
 				<Route path="water-districts/new" element={guard('companies.create', <CompanyForm user={user} />)} />
 				<Route path="water-districts/:code" element={guard('companies.view', <CompanyForm user={user} />)} />

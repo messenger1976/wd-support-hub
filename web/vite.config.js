@@ -10,6 +10,7 @@ export default defineConfig({
 		proxy: {
 			'/api': api,
 			'/api.php': api,
+			'/board-assets': api,
 			'/firebase-messaging-sw.js': api,
 		},
 	},
@@ -20,6 +21,7 @@ export default defineConfig({
 					if (!id.includes('node_modules')) return undefined;
 					if (/[\\/](chart\.js|react-chartjs-2|@kurkle)[\\/]/.test(id)) return 'charts';
 					if (/[\\/](firebase|@firebase)[\\/]/.test(id)) return 'firebase';
+					if (/[\\/](@tiptap|prosemirror-[^\\/]+|linkifyjs|orderedmap|rope-sequence|w3c-keyname)[\\/]/.test(id)) return 'editor';
 					return 'vendor';
 				},
 			},

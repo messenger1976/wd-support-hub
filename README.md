@@ -23,6 +23,7 @@ Central vendor support hub that receives tickets and messages from Water Distric
 | **Dashboard** | KPIs (needs reply, past SLA, active, mine, new, resolved, avg first response / resolution, WDs online), ticket trend, status / category / priority / per-WD charts, needs-attention list, WD health, busiest hours. Period + WD filter. | `dashboard.view` |
 | **Inbox** | Tickets from every WD the user may see. Filters (WD, status, Mine / Unassigned, search), SLA badges, assign, Resolved / Close / Reopen, reply with attachment. Mobile: list → thread. | `inbox.view`, `inbox.reply`, `inbox.status`, `inbox.assign` |
 | **Reports** | WD Summary, Ticket Register, Response & Resolution Time (SLA), Issue Category Analysis, Backlog Aging, Staff Performance, WD Connectivity & Setup. Sortable tables, charts, **Export CSV** (opens in Excel), Print. | `reports.view`, `reports.export` |
+| **Message Board** | Announcements, updates, maintenance notices and how-to guides for all or chosen WDs. TipTap editor (fonts, colours, images, YouTube), templates, audience (all / admin / staff), start–end schedule, ticker / popup / must-confirm / opt-out / pin options, live preview, read statistics per WD and user. Shown in each WD by the Message Board plugin (`client-plugin/INSTALL.md`). Migration: `sql/add_message_board.sql`. | `board.view`, `.create`, `.publish`, `.delete`, `.stats` |
 | **WD Setup** | Add a Water District, edit its profile / contact / ticket prefix / SLA targets, see its connection status, reveal or rotate its API token, copy the ready-made `message_support.php`, follow the install checklist. **Deactivate** refuses its token (tickets kept); **Delete** is only possible while it has no tickets. | `companies.view`, `.create`, `.edit`, `.deactivate`, `.token` |
 | **Users** | Hub staff: role, active / disabled, password reset, and which WDs each user handles (all, or a chosen list). | `users.view`, `users.manage` |
 | **Roles & Permissions** | Editable roles with a per-module permission grid. Seeds: **Administrator** (always full access), **Support Agent**, **Viewer**. Nobody can grant a permission they do not hold; the last active Administrator cannot be removed. | `roles.manage` |
@@ -34,7 +35,8 @@ SLA: each WD has a first-response and a resolution target (default 4 h / 72 h). 
 ### Server layout
 
 - `server/src/index.js` — Express app, SPA hosting, generated `firebase-messaging-sw.js`
-- `server/src/routes/clientApi.js` — WD push/poll API (port of `api.php`); refuses deactivated WDs
+- `server/src/routes/clientApi.js` — WD push/poll API (port of `api.php`) plus Message Board `board` / `board_receipts`; refuses deactivated WDs
+- `server/src/routes/hubBoard.js` + `server/src/board.js` — Message Board CRUD, publish/schedule, image upload, stats; HTML sanitising
 - `server/src/routes/hubAuth.js` — sign in, sign out, forgot/reset password, own profile, change password
 - `server/src/routes/hubInbox.js` — scoped companies, tickets, thread, reply, status, assign, attachments, push tokens
 - `server/src/routes/hubDashboard.js` — dashboard analytics (`server/src/analytics.js` holds the shared SQL)

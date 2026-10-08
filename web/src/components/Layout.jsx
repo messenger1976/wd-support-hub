@@ -14,6 +14,7 @@ const NAV = [
 	{ to: '/dashboard', label: 'Dashboard', icon: 'dashboard', perm: ['dashboard.view'] },
 	{ to: '/inbox', label: 'Inbox', icon: 'inbox', perm: ['inbox.view'], badge: true },
 	{ to: '/reports', label: 'Reports', icon: 'reports', perm: ['reports.view'] },
+	{ to: '/message-board', label: 'Message Board', icon: 'megaphone', perm: ['board.view'] },
 	{ section: 'Administration' },
 	{ to: '/water-districts', label: 'WD Setup', icon: 'building', perm: ['companies.view'] },
 	{ to: '/users', label: 'Users', icon: 'users', perm: ['users.view', 'users.manage'] },

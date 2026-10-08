@@ -33,6 +33,53 @@ function ChartCard({ title, subtitle, children, className = '' }) {
 	);
 }
 
+/** Message Board messages showing in the WD apps right now. */
+function LiveBoardCard({ user }) {
+	const [live, setLive] = useState(null);
+	const [scheduled, setScheduled] = useState(0);
+	useEffect(() => {
+		api.get('/board?state=live').then((r) => {
+			if (!r.ok) return;
+			setLive(r.messages.slice(0, 5));
+			setScheduled(r.counts.scheduled || 0);
+		});
+	}, []);
+	if (!live) return null;
+	return (
+		<div className="card hub-card mb-3">
+			<div className="hub-card-head">
+				<div>
+					<h2>Live announcements</h2>
+					<small>Showing in the Water District systems now{scheduled ? ` · ${scheduled} scheduled` : ''}</small>
+				</div>
+				<Link to="/message-board" className="btn btn-sm btn-light ml-auto">Message Board</Link>
+			</div>
+			{live.length === 0 ? (
+				<EmptyState icon="megaphone" title="Nothing live">
+					{can(user, 'board.create') ? <Link to="/message-board/new">Write an announcement</Link> : 'No announcement is showing right now.'}
+				</EmptyState>
+			) : (
+				<div className="list-group list-group-flush">
+					{live.map((m) => (
+						<Link key={m.uuid} to={`/message-board/${m.uuid}`} className="list-group-item list-group-item-action">
+							<div className="d-flex align-items-center">
+								<Icon name="megaphone" size={15} className="mr-2 text-primary" />
+								<span className="font-weight-bold text-truncate flex-grow-1">{m.title}</span>
+								{m.priority !== 'normal' && <span className={`badge ml-2 badge-${m.priority === 'critical' ? 'danger' : 'warning'}`}>{m.priority}</span>}
+							</div>
+							<div className="small text-muted mt-1">
+								{m.all_companies ? 'All Water Districts' : m.companies.join(', ')}
+								{m.ends_at ? ` · until ${m.ends_at.slice(0, 16)}` : ' · no end date'}
+								{m.stats ? ` · ${m.stats.viewers} users saw it` : ''}
+							</div>
+						</Link>
+					))}
+				</div>
+			)}
+		</div>
+	);
+}
+
 function shortDay(d) {
 	const [, m, day] = d.split('-');
 	return `${Number(m)}/${Number(day)}`;
@@ -268,6 +315,8 @@ export default function Dashboard({ user }) {
 							</div>
 						</div>
 					</div>
+
+					{can(user, 'board.view') && <LiveBoardCard user={user} />}
 
 					<ChartCard title="Busiest hours" subtitle="When WDs raise tickets (hub time) — helps plan support coverage">
 						<div className="hub-chart-sm">

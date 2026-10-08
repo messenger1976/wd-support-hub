@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import express from 'express';
+import { absolutizeAssets } from '../board.js';
 import { one, query } from '../db.js';
 import { notifySupportUsers } from '../firebase.js';
 import { now, resolveAttachment, statusTimestamps, storeAttachment, str } from '../util.js';
@@ -9,6 +10,9 @@ import { now, resolveAttachment, statusTimestamps, storeAttachment, str } from '
  * The contract is unchanged from the PHP hub: Bearer company token, and
  *   POST {hub}api.php?action=push   (or /api/push)
  *   GET  {hub}api.php?action=poll&since=Y-m-d H:i:s   (or /api/poll)
+ * Message Board (client-plugin/messageboard_model.php):
+ *   GET  {hub}api.php?action=board            (or /api/board)
+ *   POST {hub}api.php?action=board_receipts   (or /api/board-receipts)
  */
 const router = express.Router();
 
@@ -175,13 +179,114 @@ async function poll(req, res) {
 	res.json({ ok: true, messages, tickets, server_time: now() });
 }
 
+/** Upcoming messages are sent early so the WD can show them on time from its cache, even if the hub is unreachable then. */
+const BOARD_LOOKAHEAD_DAYS = 7;
+/** Ended messages stay listed this long on the WD's Announcements & Guides page. */
+const BOARD_HISTORY_DAYS = 90;
+const DAY_MS = 86400000;
+
+/** Full snapshot of the Message Board for this WD; the WD replaces its cache with it. */
+async function board(req, res) {
+	const code = req.company.code;
+	const ts = now();
+	const rows = await query(
+		`SELECT m.uuid, m.title, m.ticker_text, m.body_html, m.category, m.priority, m.show_ticker, m.show_popup, m.require_ack,
+			m.allow_opt_out, m.pinned, m.audience, m.starts_at, m.ends_at, m.version, m.updated_at
+		 FROM wd_board_message m
+		 WHERE m.status = 'published'
+			AND (m.all_companies = 1 OR EXISTS (SELECT 1 FROM wd_board_message_company mc WHERE mc.message_id = m.id AND mc.company_code = ?))
+			AND m.starts_at <= ?
+			AND (m.ends_at IS NULL OR m.ends_at > ?)
+		 ORDER BY m.pinned DESC, FIELD(m.priority, 'critical', 'important', 'normal'), m.starts_at DESC
+		 LIMIT 200`,
+		[code, now(BOARD_LOOKAHEAD_DAYS * DAY_MS), now(-BOARD_HISTORY_DAYS * DAY_MS)],
+	);
+	const messages = rows.map((m) => ({
+		...m,
+		body_html: absolutizeAssets(m.body_html),
+		show_ticker: Number(m.show_ticker),
+		show_popup: Number(m.show_popup),
+		require_ack: Number(m.require_ack),
+		allow_opt_out: Number(m.allow_opt_out),
+		pinned: Number(m.pinned),
+		version: Number(m.version),
+	}));
+	res.json({ ok: true, messages, server_time: ts });
+}
+
+const RECEIPT_EVENTS = ['view', 'ack', 'optout', 'optin'];
+
+/** Batched "seen / acknowledged / don't show again" events from WD users, for the hub's read statistics. */
+async function boardReceipts(req, res) {
+	const code = req.company.code;
+	const events = Array.isArray(req.body?.events) ? req.body.events.slice(0, 500) : [];
+	if (!events.length) return res.json({ ok: true, accepted: 0 });
+	const ts = now();
+	const uuids = [...new Set(events.map((e) => str(e?.message_uuid)).filter(Boolean))];
+	const known = uuids.length
+		? new Set((await query(
+			`SELECT m.uuid FROM wd_board_message m WHERE m.uuid IN (?)
+				AND (m.all_companies = 1 OR EXISTS (SELECT 1 FROM wd_board_message_company mc WHERE mc.message_id = m.id AND mc.company_code = ?))`,
+			[uuids, code],
+		)).map((r) => r.uuid))
+		: new Set();
+	let accepted = 0;
+	for (const e of events) {
+		const messageUuid = str(e?.message_uuid);
+		const userKey = str(e?.user_key).slice(0, 80);
+		const event = str(e?.event);
+		if (!known.has(messageUuid) || !/^[A-Za-z0-9_.:-]+$/.test(userKey) || !RECEIPT_EVENTS.includes(event)) continue;
+		const rawAt = str(e?.at).replace(/[^0-9:\- ]/g, '');
+		const at = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(rawAt) && rawAt <= ts ? rawAt : ts;
+		const version = Math.max(1, parseInt(e?.version, 10) || 1);
+		const userName = str(e?.user_name).slice(0, 150);
+		const row = await one(
+			'SELECT * FROM wd_board_receipt WHERE message_uuid = ? AND company_code = ? AND wd_user_key = ? LIMIT 1',
+			[messageUuid, code, userKey],
+		);
+		// A "show again" edit (higher version) starts acknowledgement and opt-out over.
+		const fresh = !row || version > Number(row.version);
+		const r = {
+			view_count: Number(row?.view_count || 0),
+			first_viewed_at: row?.first_viewed_at || null,
+			last_viewed_at: row?.last_viewed_at || null,
+			acked_at: fresh ? null : row.acked_at,
+			opted_out_at: fresh ? null : row.opted_out_at,
+		};
+		if (row && version < Number(row.version) && event !== 'view') continue;
+		if (event === 'view') {
+			r.view_count += 1;
+			r.first_viewed_at = r.first_viewed_at && r.first_viewed_at < at ? r.first_viewed_at : at;
+			r.last_viewed_at = r.last_viewed_at && r.last_viewed_at > at ? r.last_viewed_at : at;
+		} else if (event === 'ack') {
+			r.acked_at = r.acked_at || at;
+		} else if (event === 'optout') {
+			r.opted_out_at = at;
+		} else {
+			r.opted_out_at = null;
+		}
+		const fields = { ...r, user_name: userName || row?.user_name || '', version: Math.max(version, Number(row?.version || 1)), updated_at: ts };
+		if (row) {
+			await query('UPDATE wd_board_receipt SET ? WHERE id = ?', [fields, row.id]);
+		} else {
+			await query('INSERT INTO wd_board_receipt SET ?', [{ ...fields, message_uuid: messageUuid, company_code: code, wd_user_key: userKey }]);
+		}
+		accepted += 1;
+	}
+	return res.json({ ok: true, accepted });
+}
+
 router.all('/api.php', companyAuth, jsonBody, async (req, res) => {
 	const action = str(req.query.action);
 	if (action === 'push' && req.method === 'POST') return push(req, res);
 	if (action === 'poll') return poll(req, res);
+	if (action === 'board') return board(req, res);
+	if (action === 'board_receipts' && req.method === 'POST') return boardReceipts(req, res);
 	return res.status(404).json({ ok: false, error: 'Unknown action' });
 });
 router.post('/api/push', companyAuth, jsonBody, push);
 router.all('/api/poll', companyAuth, poll);
+router.get('/api/board', companyAuth, board);
+router.post('/api/board-receipts', companyAuth, jsonBody, boardReceipts);
 
 export default router;

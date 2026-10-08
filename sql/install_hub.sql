@@ -1,6 +1,6 @@
 -- Super Admin hub database (wd_support_hub).
 -- Creates Water Districts (companies), hub users + roles, tickets, messages, push tokens and the audit log.
--- Existing installs: run add_push_tokens.sql (v2) and add_admin_modules.sql (v3) instead.
+-- Existing installs: run add_push_tokens.sql (v2), add_admin_modules.sql (v3) and add_message_board.sql (v4) instead.
 
 CREATE DATABASE IF NOT EXISTS `wd_support_hub` DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
 USE `wd_support_hub`;
@@ -163,10 +163,80 @@ CREATE TABLE IF NOT EXISTS `wd_support_audit_log` (
 	KEY `user_id` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+-- Message Board (v4): announcements, updates and how-to guides shown in the WD apps.
+CREATE TABLE IF NOT EXISTS `wd_board_message` (
+	`id` INT(11) NOT NULL AUTO_INCREMENT,
+	`uuid` VARCHAR(36) NOT NULL,
+	`title` VARCHAR(200) NOT NULL,
+	`ticker_text` VARCHAR(300) NOT NULL DEFAULT '',
+	`body_html` MEDIUMTEXT,
+	`category` VARCHAR(20) NOT NULL DEFAULT 'announcement',
+	`priority` VARCHAR(16) NOT NULL DEFAULT 'normal',
+	`show_ticker` TINYINT(1) NOT NULL DEFAULT 1,
+	`show_popup` TINYINT(1) NOT NULL DEFAULT 1,
+	`require_ack` TINYINT(1) NOT NULL DEFAULT 0,
+	`allow_opt_out` TINYINT(1) NOT NULL DEFAULT 1,
+	`pinned` TINYINT(1) NOT NULL DEFAULT 0,
+	`audience` VARCHAR(16) NOT NULL DEFAULT 'all',
+	`all_companies` TINYINT(1) NOT NULL DEFAULT 1,
+	`starts_at` DATETIME NOT NULL,
+	`ends_at` DATETIME DEFAULT NULL,
+	`status` VARCHAR(16) NOT NULL DEFAULT 'draft',
+	`version` INT(11) NOT NULL DEFAULT 1,
+	`published_at` DATETIME DEFAULT NULL,
+	`created_by` INT(11) NOT NULL DEFAULT 0,
+	`created_by_name` VARCHAR(150) NOT NULL DEFAULT '',
+	`updated_by` INT(11) NOT NULL DEFAULT 0,
+	`updated_by_name` VARCHAR(150) NOT NULL DEFAULT '',
+	`created_at` DATETIME NOT NULL,
+	`updated_at` DATETIME NOT NULL,
+	PRIMARY KEY (`id`),
+	UNIQUE KEY `uuid` (`uuid`),
+	KEY `status_window` (`status`, `starts_at`, `ends_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS `wd_board_message_company` (
+	`message_id` INT(11) NOT NULL,
+	`company_code` VARCHAR(32) NOT NULL,
+	PRIMARY KEY (`message_id`, `company_code`),
+	KEY `company_code` (`company_code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS `wd_board_asset` (
+	`id` INT(11) NOT NULL AUTO_INCREMENT,
+	`uuid` VARCHAR(36) NOT NULL,
+	`file_path` VARCHAR(255) NOT NULL,
+	`original_name` VARCHAR(255) NOT NULL DEFAULT '',
+	`mime` VARCHAR(60) NOT NULL DEFAULT '',
+	`size_bytes` INT(11) NOT NULL DEFAULT 0,
+	`uploaded_by` INT(11) NOT NULL DEFAULT 0,
+	`created_at` DATETIME NOT NULL,
+	PRIMARY KEY (`id`),
+	UNIQUE KEY `uuid` (`uuid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS `wd_board_receipt` (
+	`id` INT(11) NOT NULL AUTO_INCREMENT,
+	`message_uuid` VARCHAR(36) NOT NULL,
+	`company_code` VARCHAR(32) NOT NULL,
+	`wd_user_key` VARCHAR(80) NOT NULL,
+	`user_name` VARCHAR(150) NOT NULL DEFAULT '',
+	`view_count` INT(11) NOT NULL DEFAULT 0,
+	`first_viewed_at` DATETIME DEFAULT NULL,
+	`last_viewed_at` DATETIME DEFAULT NULL,
+	`acked_at` DATETIME DEFAULT NULL,
+	`opted_out_at` DATETIME DEFAULT NULL,
+	`version` INT(11) NOT NULL DEFAULT 1,
+	`updated_at` DATETIME NOT NULL,
+	PRIMARY KEY (`id`),
+	UNIQUE KEY `message_user` (`message_uuid`, `company_code`, `wd_user_key`),
+	KEY `company_code` (`company_code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
 INSERT IGNORE INTO `wd_support_role` (`id`, `name`, `description`, `is_system`, `permissions`, `created_at`, `updated_at`) VALUES
 (1, 'Administrator', 'Full access to every module, including users, roles and WD Setup.', 1, '["*"]', NOW(), NOW()),
 (2, 'Support Agent', 'Answers and manages tickets; sees dashboard and reports.', 1,
-	'["dashboard.view","inbox.view","inbox.reply","inbox.status","inbox.assign","companies.view","reports.view"]', NOW(), NOW()),
+	'["dashboard.view","board.view","inbox.view","inbox.reply","inbox.status","inbox.assign","companies.view","reports.view"]', NOW(), NOW()),
 (3, 'Viewer', 'Read-only: dashboard, tickets and reports (with export).', 1,
 	'["dashboard.view","inbox.view","reports.view","reports.export"]', NOW(), NOW());
 

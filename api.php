@@ -78,7 +78,113 @@ if ($action === 'poll') {
 	hub_json(array('ok' => TRUE, 'messages' => $messages, 'tickets' => $tickets, 'server_time' => hub_now()));
 }
 
+if ($action === 'board') {
+	hub_json(hub_board_snapshot($db, $code));
+}
+
+if ($action === 'board_receipts' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+	$payload = json_decode(file_get_contents('php://input'), TRUE);
+	$events = (is_array($payload) && isset($payload['events']) && is_array($payload['events'])) ? array_slice($payload['events'], 0, 500) : array();
+	hub_json(array('ok' => TRUE, 'accepted' => hub_board_receipts($db, $code, $events)));
+}
+
 hub_json(array('ok' => FALSE, 'error' => 'Unknown action'), 404);
+
+/** Message Board snapshot for one WD; mirrors board() in server/src/routes/clientApi.js. */
+function hub_board_snapshot($db, $code) {
+	$now = hub_now();
+	$ahead = date('Y-m-d H:i:s', time() + 7 * 86400);
+	$history = date('Y-m-d H:i:s', time() - 90 * 86400);
+	$scheme = ( ! empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+	$base = $scheme.'://'.$_SERVER['HTTP_HOST'].rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
+	$c = hub_esc($code);
+	$q = $db->query("SELECT m.uuid, m.title, m.ticker_text, m.body_html, m.category, m.priority, m.show_ticker, m.show_popup, m.require_ack,
+			m.allow_opt_out, m.pinned, m.audience, m.starts_at, m.ends_at, m.version, m.updated_at
+		FROM wd_board_message m
+		WHERE m.status = 'published'
+			AND (m.all_companies = 1 OR EXISTS (SELECT 1 FROM wd_board_message_company mc WHERE mc.message_id = m.id AND mc.company_code = '{$c}'))
+			AND m.starts_at <= '".hub_esc($ahead)."'
+			AND (m.ends_at IS NULL OR m.ends_at > '".hub_esc($history)."')
+		ORDER BY m.pinned DESC, FIELD(m.priority, 'critical', 'important', 'normal'), m.starts_at DESC
+		LIMIT 200");
+	$messages = array();
+	while ($q && $row = $q->fetch_assoc()) {
+		$row['body_html'] = str_replace(' src="/board-assets/', ' src="'.$base.'/board-assets/', (string) $row['body_html']);
+		foreach (array('show_ticker', 'show_popup', 'require_ack', 'allow_opt_out', 'pinned', 'version') as $k) {
+			$row[$k] = (int) $row[$k];
+		}
+		$messages[] = $row;
+	}
+	return array('ok' => TRUE, 'messages' => $messages, 'server_time' => $now);
+}
+
+/** Mirrors boardReceipts() in server/src/routes/clientApi.js. Returns the number of accepted events. */
+function hub_board_receipts($db, $code, $events) {
+	$now = hub_now();
+	$c = hub_esc($code);
+	$accepted = 0;
+	foreach ($events as $e) {
+		if ( ! is_array($e)) {
+			continue;
+		}
+		$muuid = isset($e['message_uuid']) ? (string) $e['message_uuid'] : '';
+		$ukey = substr(isset($e['user_key']) ? (string) $e['user_key'] : '', 0, 80);
+		$event = isset($e['event']) ? (string) $e['event'] : '';
+		if ($muuid === '' || ! preg_match('/^[A-Za-z0-9_.:-]+$/', $ukey) || ! in_array($event, array('view', 'ack', 'optout', 'optin'), TRUE)) {
+			continue;
+		}
+		$known = $db->query("SELECT m.id FROM wd_board_message m WHERE m.uuid = '".hub_esc($muuid)."'
+			AND (m.all_companies = 1 OR EXISTS (SELECT 1 FROM wd_board_message_company mc WHERE mc.message_id = m.id AND mc.company_code = '{$c}')) LIMIT 1");
+		if ( ! $known || ! $known->fetch_assoc()) {
+			continue;
+		}
+		$at = preg_replace('/[^0-9:\- ]/', '', isset($e['at']) ? (string) $e['at'] : '');
+		if ( ! preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $at) || $at > $now) {
+			$at = $now;
+		}
+		$version = max(1, (int) (isset($e['version']) ? $e['version'] : 1));
+		$uname = substr(isset($e['user_name']) ? (string) $e['user_name'] : '', 0, 150);
+		$rq = $db->query("SELECT * FROM wd_board_receipt WHERE message_uuid = '".hub_esc($muuid)."' AND company_code = '{$c}' AND wd_user_key = '".hub_esc($ukey)."' LIMIT 1");
+		$row = $rq ? $rq->fetch_assoc() : NULL;
+		if ($row && $version < (int) $row['version'] && $event !== 'view') {
+			continue;
+		}
+		$fresh = ! $row || $version > (int) $row['version'];
+		$r = array(
+			'view_count' => $row ? (int) $row['view_count'] : 0,
+			'first_viewed_at' => $row ? $row['first_viewed_at'] : NULL,
+			'last_viewed_at' => $row ? $row['last_viewed_at'] : NULL,
+			'acked_at' => $fresh ? NULL : $row['acked_at'],
+			'opted_out_at' => $fresh ? NULL : $row['opted_out_at'],
+		);
+		if ($event === 'view') {
+			$r['view_count']++;
+			$r['first_viewed_at'] = ($r['first_viewed_at'] && $r['first_viewed_at'] < $at) ? $r['first_viewed_at'] : $at;
+			$r['last_viewed_at'] = ($r['last_viewed_at'] && $r['last_viewed_at'] > $at) ? $r['last_viewed_at'] : $at;
+		} elseif ($event === 'ack') {
+			$r['acked_at'] = $r['acked_at'] ? $r['acked_at'] : $at;
+		} elseif ($event === 'optout') {
+			$r['opted_out_at'] = $at;
+		} else {
+			$r['opted_out_at'] = NULL;
+		}
+		$sql = function ($v) {
+			return $v === NULL ? 'NULL' : "'".hub_esc($v)."'";
+		};
+		$name = $uname !== '' ? $uname : ($row ? $row['user_name'] : '');
+		$ver = max($version, $row ? (int) $row['version'] : 1);
+		$set = 'view_count = '.(int) $r['view_count'].', first_viewed_at = '.$sql($r['first_viewed_at']).', last_viewed_at = '.$sql($r['last_viewed_at'])
+			.', acked_at = '.$sql($r['acked_at']).', opted_out_at = '.$sql($r['opted_out_at']).', user_name = '.$sql($name)
+			.', version = '.(int) $ver.", updated_at = '".hub_esc($now)."'";
+		if ($row) {
+			$db->query('UPDATE wd_board_receipt SET '.$set.' WHERE id = '.(int) $row['id']);
+		} else {
+			$db->query("INSERT INTO wd_board_receipt SET message_uuid = '".hub_esc($muuid)."', company_code = '{$c}', wd_user_key = '".hub_esc($ukey)."', ".$set);
+		}
+		$accepted++;
+	}
+	return $accepted;
+}
 
 function hub_upsert_ticket($db, $code, $ticket) {
 	$uuid = hub_esc($ticket['uuid']);

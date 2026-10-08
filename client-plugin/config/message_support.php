@@ -12,3 +12,7 @@ $config['ms_hub_url'] = 'http://localhost/wd-support-hub/';
 $config['ms_api_token'] = 'labason-ms-7f3c9a2e1b4d6805c8e0';
 $config['ms_poll_seconds'] = 8;
 $config['ms_max_upload_kb'] = 4096;
+
+// Message Board (announcements from the hub; same hub URL and token as Message Support).
+$config['ms_board_enabled'] = TRUE;
+$config['ms_board_refresh_minutes'] = 5;

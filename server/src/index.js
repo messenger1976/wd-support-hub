@@ -3,12 +3,14 @@ import path from 'node:path';
 import cookieParser from 'cookie-parser';
 import express from 'express';
 import { config, firebaseWebConfig } from './config.js';
-import { pool } from './db.js';
+import { one, pool } from './db.js';
+import { resolveAttachment } from './util.js';
 import { pushEnabled } from './firebase.js';
 import { requireAppHeader, requireUser } from './auth.js';
 import clientApi from './routes/clientApi.js';
 import hubAudit from './routes/hubAudit.js';
 import hubAuth from './routes/hubAuth.js';
+import hubBoard from './routes/hubBoard.js';
 import hubCompanies from './routes/hubCompanies.js';
 import hubDashboard from './routes/hubDashboard.js';
 import hubInbox from './routes/hubInbox.js';
@@ -34,8 +36,20 @@ hub.get('/config', (req, res) => {
 	res.json({ ok: true, app_env: config.appEnv, firebase: firebase && pushEnabled() ? firebase : null });
 });
 hub.use('/auth', hubAuth);
-hub.use(requireUser, hubInbox, hubDashboard, hubCompanies, hubReports, hubUsers, hubAudit);
+hub.use(requireUser, hubInbox, hubDashboard, hubBoard, hubCompanies, hubReports, hubUsers, hubAudit);
 app.use('/api/hub', hub);
+
+// Message Board images: loaded straight from the hub by browsers inside the WD apps, so no login (UUIDs are unguessable).
+app.get('/board-assets/:uuid', async (req, res) => {
+	const row = await one('SELECT file_path, mime FROM wd_board_asset WHERE uuid = ? LIMIT 1', [String(req.params.uuid)]);
+	const file = row ? resolveAttachment(row.file_path) : null;
+	if (!file) return res.status(404).type('text/plain').send('Not found');
+	res.set('X-Content-Type-Options', 'nosniff');
+	res.set('Cache-Control', 'public, max-age=31536000, immutable');
+	res.set('Cross-Origin-Resource-Policy', 'cross-origin');
+	res.type(row.mime || 'application/octet-stream');
+	return res.sendFile(file);
+});
 
 // The hub's only service worker: PWA caching (web/public/pwa-sw.js) plus Firebase Messaging,
 // generated so the Firebase web config lives only in server/.env.
