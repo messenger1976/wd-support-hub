@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getMessaging, getToken, isSupported, onMessage } from 'firebase/messaging';
 import { api } from './api.js';
+import { SW_URL } from './pwa.js';
 
 let messaging = null;
 let vapidKey = '';
@@ -27,7 +28,7 @@ export async function enablePush({ prompt }) {
 	if (perm === 'default' && prompt) perm = await Notification.requestPermission();
 	if (perm !== 'granted') return { ok: false, error: perm === 'denied' ? 'Notifications are blocked for this site.' : '' };
 	try {
-		const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+		const registration = await navigator.serviceWorker.register(SW_URL);
 		currentToken = await getToken(messaging, { vapidKey, serviceWorkerRegistration: registration });
 	} catch (err) {
 		return { ok: false, error: `Could not enable notifications: ${err.message}` };

@@ -74,8 +74,8 @@ export default function Dashboard({ user }) {
 		labels: data.trend.map((d) => shortDay(d.date)),
 		datasets: [
 			{
-				label: 'New tickets', data: data.trend.map((d) => d.created), borderColor: '#584475',
-				backgroundColor: 'rgba(88,68,117,0.12)', fill: true, tension: 0.3, pointRadius: data.trend.length > 45 ? 0 : 2,
+				label: 'New tickets', data: data.trend.map((d) => d.created), borderColor: '#0a6ba3',
+				backgroundColor: 'rgba(10,107,163,0.12)', fill: true, tension: 0.3, pointRadius: data.trend.length > 45 ? 0 : 2,
 			},
 			{
 				label: 'Resolved / closed', data: data.trend.map((d) => d.resolved), borderColor: '#1dc9b7',
@@ -104,7 +104,7 @@ export default function Dashboard({ user }) {
 
 	const hourData = data && {
 		labels: data.by_hour.map((_, h) => (h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? '12p' : `${h - 12}p`)),
-		datasets: [{ label: 'Tickets', data: data.by_hour, backgroundColor: 'rgba(88,68,117,0.75)', borderRadius: 2 }],
+		datasets: [{ label: 'Tickets', data: data.by_hour, backgroundColor: 'rgba(10,107,163,0.75)', borderRadius: 2 }],
 	};
 
 	const priorityData = data && {
@@ -230,7 +230,7 @@ export default function Dashboard({ user }) {
 									<h2>Water District health</h2>
 									<small>Connection and open workload per WD</small>
 								</div>
-								{can(user, 'companies.view') && <Link to="/wd" className="btn btn-sm btn-light">WD Setup</Link>}
+								{can(user, 'companies.view') && <Link to="/water-districts" className="btn btn-sm btn-light">WD Setup</Link>}
 							</div>
 							<div className="table-responsive">
 								<table className="table table-sm hub-table mb-0">

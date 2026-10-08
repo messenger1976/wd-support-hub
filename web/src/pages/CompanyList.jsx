@@ -24,7 +24,7 @@ export default function CompanyList({ user }) {
 	const [busy, setBusy] = useState(false);
 
 	const load = useCallback(async () => {
-		const r = await api.get('/wd');
+		const r = await api.get('/water-districts');
 		if (r.ok) {
 			setList(r.companies);
 			setNow(r.server_time);
@@ -37,8 +37,8 @@ export default function CompanyList({ user }) {
 		const { action, company } = confirm;
 		setBusy(true);
 		const r = action === 'delete'
-			? await api.del(`/wd/${company.code}`, { confirm_code: typed })
-			: await api.post(`/wd/${company.code}/${action}`);
+			? await api.del(`/water-districts/${company.code}`, { confirm_code: typed })
+			: await api.post(`/water-districts/${company.code}/${action}`);
 		setBusy(false);
 		setConfirm(null);
 		if (!r.ok) {
@@ -63,7 +63,7 @@ export default function CompanyList({ user }) {
 		<>
 			<PageHeader icon="building" title="WD Setup" subtitle="Water Districts connected to this support hub — profile, SLA targets and app connection">
 				{can(user, 'companies.create') && (
-					<Link to="/wd/new" className="btn btn-primary btn-sm"><Icon name="plus" size={15} className="mr-1" />Add Water District</Link>
+					<Link to="/water-districts/new" className="btn btn-primary btn-sm"><Icon name="plus" size={15} className="mr-1" />Add Water District</Link>
 				)}
 			</PageHeader>
 			<Alert onClose={() => setError('')}>{error}</Alert>
@@ -119,11 +119,11 @@ export default function CompanyList({ user }) {
 								{c.contact_person && <div><Icon name="user" size={13} className="mr-1" />{c.contact_person}{c.contact_phone ? ` · ${c.contact_phone}` : ''}</div>}
 							</div>
 							<div className="hub-wd-actions">
-								<button type="button" className="btn btn-sm btn-light" onClick={() => navigate(`/wd/${c.code}`)}>
+								<button type="button" className="btn btn-sm btn-light" onClick={() => navigate(`/water-districts/${c.code}`)}>
 									<Icon name={can(user, 'companies.edit') ? 'edit' : 'eye'} size={14} className="mr-1" />
 									{can(user, 'companies.edit') ? 'Edit' : 'View'}
 								</button>
-								<button type="button" className="btn btn-sm btn-light" onClick={() => navigate(`/wd/${c.code}?tab=connection`)}>
+								<button type="button" className="btn btn-sm btn-light" onClick={() => navigate(`/water-districts/${c.code}?tab=connection`)}>
 									<Icon name="key" size={14} className="mr-1" />Connection
 								</button>
 								{can(user, 'companies.deactivate') && (

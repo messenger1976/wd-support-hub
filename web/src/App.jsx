@@ -75,9 +75,9 @@ export default function App() {
 				<Route path="inbox" element={guard('inbox.view', <Inbox user={user} />)} />
 				<Route path="reports" element={guard('reports.view', <Reports user={user} />)} />
 				<Route path="reports/:type" element={guard('reports.view', <Reports user={user} />)} />
-				<Route path="wd" element={guard('companies.view', <CompanyList user={user} />)} />
-				<Route path="wd/new" element={guard('companies.create', <CompanyForm user={user} />)} />
-				<Route path="wd/:code" element={guard('companies.view', <CompanyForm user={user} />)} />
+				<Route path="water-districts" element={guard('companies.view', <CompanyList user={user} />)} />
+				<Route path="water-districts/new" element={guard('companies.create', <CompanyForm user={user} />)} />
+				<Route path="water-districts/:code" element={guard('companies.view', <CompanyForm user={user} />)} />
 				<Route path="users" element={guard(['users.view', 'users.manage'], <Users user={user} />)} />
 				<Route path="roles" element={guard(['users.view', 'users.manage', 'roles.manage'], <Roles user={user} />)} />
 				<Route path="audit" element={guard('audit.view', <AuditLog />)} />

@@ -16,7 +16,7 @@ export const STATUS_COLORS = {
 
 export const PRIORITY_COLORS = { low: '#adb5bd', normal: '#6c757d', high: '#fd7e14', urgent: '#dc3545' };
 
-export const BRAND_PALETTE = ['#584475', '#1dc9b7', '#ffc241', '#2196f3', '#fd3995', '#4caf50', '#fd7e14', '#868e96', '#8e44ad', '#20c997'];
+export const BRAND_PALETTE = ['#0a6ba3', '#1dc9b7', '#ffc241', '#2196f3', '#fd3995', '#4caf50', '#fd7e14', '#868e96', '#8e44ad', '#20c997'];
 
 export function can(user, key) {
 	return !!user?.permissions?.includes(key);

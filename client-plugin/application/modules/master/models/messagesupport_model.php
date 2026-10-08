@@ -470,11 +470,12 @@ class messagesupport_model extends CI_Model {
 			curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3);
 			curl_setopt($ch, CURLOPT_TIMEOUT, 8);
 			$raw = curl_exec($ch);
+			$errno = curl_errno($ch);
 			$err = curl_error($ch);
 			$code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
 			curl_close($ch);
-			if ($raw === FALSE) {
-				return array('ok' => FALSE, 'error' => $err ? $err : 'HTTP error');
+			if ($raw === FALSE || $errno) {
+				return array('ok' => FALSE, 'error' => 'cURL error '.$errno.($err !== '' ? ': '.$err : '').' (HTTP '.$code.', '.$url.')');
 			}
 			$decoded = json_decode($raw, TRUE);
 			if ( ! is_array($decoded)) {

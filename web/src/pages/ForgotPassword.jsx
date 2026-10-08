@@ -31,7 +31,7 @@ export default function ForgotPassword() {
 
 	return (
 		<AuthShell title="Forgot password — WD Support Hub">
-			<h4 className="mb-1">Forgot password</h4>
+			<h2>Forgot password</h2>
 			<p className="text-muted mb-4">
 				Enter your username or account email. We will email a one-time reset link if a match is found.
 			</p>
@@ -54,7 +54,7 @@ export default function ForgotPassword() {
 						<input id="identifier" className="form-control" required autoFocus
 							value={identifier} onChange={(e) => setIdentifier(e.target.value)} />
 					</div>
-					<button type="submit" className="btn btn-danger btn-block" disabled={busy}>Send reset link</button>
+					<button type="submit" className="btn btn-primary btn-block" disabled={busy}>Send reset link</button>
 				</form>
 			)}
 			<div className="text-center mt-3"><Link to="/">Back to sign in</Link></div>

@@ -22,9 +22,16 @@ The v2 hub is a **Node.js** app (Express API + built React UI) on **MySQL**. It 
 6. **Start:** `npm start` (repo root) under a process manager:
    - VPS: `pm2 start npm --name wd-support-hub -- start`, with a reverse proxy (Nginx/Apache) from HTTPS to `PORT`.
    - cPanel Node.js App: application root = repo, startup file = `server/src/index.js`.
-7. **HTTPS is required** for Firebase web push (browsers only allow it on secure origins).
+7. **HTTPS is required** for Firebase web push and for installing the hub as an app (PWA) — browsers only allow both on secure origins.
 8. **Sign in** at `BASE_URL`: default **superadmin** / **SuperAdmin@2026** — change it under **My account**. Click **Enable notifications**.
 9. **Staff:** **Users → Add user** for each support person. Pick a role (Support Agent for day-to-day support, Viewer for management read-only) and the WDs they handle. Adjust roles under **Roles & Permissions** if needed.
+
+## Installable app (PWA) and branding
+
+- Logo source: `web/public/logo.svg` (rounded tile) and `web/public/icons/maskable.svg` (full-bleed, for Android/iOS masks). `favicon.ico` and the PNG icons in `web/public/icons/` are rendered from these two SVGs — re-render them if the logo changes.
+- Sign-in photo: `web/public/img/water-hero*.webp`, from "Ocean ripple" by Matt Hardy (Wikimedia Commons / Unsplash), **CC0 public domain**.
+- There is **one** service worker at scope `/`: the server-generated `/firebase-messaging-sw.js`, which always imports `web/public/pwa-sw.js` (caching) and adds Firebase Messaging when `FIREBASE_*` is set. Do not register a second worker at `/` — it would replace this one and stop background push.
+- `pwa-sw.js` never caches `/api/*` (tickets, messages, attachments). Pages are network-first with `offline.html` as fallback; `/assets/*` is cache-first. Bump `PWA_VERSION` in `pwa-sw.js` to drop old caches.
 
 ## Cut-over from the PHP hub
 

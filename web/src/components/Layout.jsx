@@ -2,10 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 import { enablePush, initPush, onForegroundMessage, permission } from '../push.js';
+import { useInstallPrompt, useOnline } from '../pwa.js';
 import { can, initials } from '../lib/format.js';
 import Icon from './Icon.jsx';
 
 const COUNTS_POLL_MS = 30000;
+const BOTTOM_NAV_MAX = 3;
 
 /** Menu, in order. `perm` hides the entry when the role lacks it (any of the listed keys). */
 const NAV = [
@@ -13,7 +15,7 @@ const NAV = [
 	{ to: '/inbox', label: 'Inbox', icon: 'inbox', perm: ['inbox.view'], badge: true },
 	{ to: '/reports', label: 'Reports', icon: 'reports', perm: ['reports.view'] },
 	{ section: 'Administration' },
-	{ to: '/wd', label: 'WD Setup', icon: 'building', perm: ['companies.view'] },
+	{ to: '/water-districts', label: 'WD Setup', icon: 'building', perm: ['companies.view'] },
 	{ to: '/users', label: 'Users', icon: 'users', perm: ['users.view', 'users.manage'] },
 	{ to: '/roles', label: 'Roles & Permissions', icon: 'shield', perm: ['users.view', 'users.manage', 'roles.manage'] },
 	{ to: '/audit', label: 'Audit Log', icon: 'list', perm: ['audit.view'] },
@@ -33,7 +35,10 @@ export default function Layout({ user, hubConfig, onLogout }) {
 	const [counts, setCounts] = useState({ needs_reply: 0, unread: 0 });
 	const [push, setPush] = useState({ available: false, permission: 'default', error: '' });
 	const [toast, setToast] = useState(null);
+	const [iosHint, setIosHint] = useState(false);
 	const userMenuRef = useRef(null);
+	const online = useOnline();
+	const installPrompt = useInstallPrompt();
 
 	useEffect(() => { setMenuOpen(false); setUserMenu(false); }, [location.pathname]);
 
@@ -106,15 +111,22 @@ export default function Layout({ user, hubConfig, onLogout }) {
 		setPush((p) => ({ ...p, permission: permission(), error: r.ok ? '' : r.error || '' }));
 	}
 
+	async function installApp() {
+		setUserMenu(false);
+		if (installPrompt.mode === 'ios') setIosHint(true);
+		else await installPrompt.install();
+	}
+
 	const nav = visibleNav(user);
+	const bottomNav = nav.filter((n) => !n.section).slice(0, BOTTOM_NAV_MAX);
 	const pushOn = push.available && push.permission === 'granted' && !push.error;
 
 	return (
 		<div className={`hub-shell ${menuOpen ? 'menu-open' : ''}`}>
 			<aside className="hub-nav" aria-label="Main menu">
 				<div className="hub-nav-brand">
-					<span className="hub-logo">WD</span>
-					<div>
+					<img className="hub-logo" src="/logo.svg" alt="" width="36" height="36" />
+					<div className="min-w-0">
 						<div className="hub-nav-title">Support Hub</div>
 						<div className="hub-nav-sub">Water District systems</div>
 					</div>
@@ -146,7 +158,10 @@ export default function Layout({ user, hubConfig, onLogout }) {
 					<button type="button" className="btn hub-icon-btn d-lg-none" aria-label="Open menu" onClick={() => setMenuOpen(true)}>
 						<Icon name="menu" size={22} />
 					</button>
-					<span className="hub-topbar-title d-lg-none">WD Support Hub</span>
+					<div className="hub-topbar-brand d-lg-none">
+						<img className="hub-logo hub-logo-sm" src="/logo.svg" alt="" width="30" height="30" />
+						<span className="hub-topbar-title">WD Support Hub</span>
+					</div>
 					<div className="ml-auto d-flex align-items-center">
 						{push.available && push.permission !== 'granted' && (
 							<button type="button" className="btn btn-sm btn-outline-primary mr-2" onClick={turnOnNotifications}
@@ -177,6 +192,11 @@ export default function Layout({ user, hubConfig, onLogout }) {
 									<button type="button" className="dropdown-item" onClick={() => navigate('/account')}>
 										<Icon name="user" size={15} className="mr-2" />My account
 									</button>
+									{installPrompt.mode && (
+										<button type="button" className="dropdown-item" onClick={installApp}>
+											<Icon name="download" size={15} className="mr-2" />Install app
+										</button>
+									)}
 									<button type="button" className="dropdown-item text-danger" onClick={onLogout}>
 										<Icon name="logout" size={15} className="mr-2" />Sign out
 									</button>
@@ -185,11 +205,36 @@ export default function Layout({ user, hubConfig, onLogout }) {
 						</div>
 					</div>
 				</header>
+				{!online && (
+					<div className="hub-offline" role="status">
+						<Icon name="wifiOff" size={15} />You are offline — changes cannot be saved until the connection returns.
+					</div>
+				)}
 				{push.error && <div className="alert alert-warning mx-3 mt-3 mb-0 py-2">{push.error}</div>}
+				{iosHint && (
+					<div className="alert alert-info mx-3 mt-3 mb-0 py-2 d-flex align-items-start">
+						<div className="flex-grow-1">To install, tap <strong>Share</strong> in Safari, then <strong>Add to Home Screen</strong>.</div>
+						<button type="button" className="close ml-2" aria-label="Close" onClick={() => setIosHint(false)}>&times;</button>
+					</div>
+				)}
 				<main className="hub-content">
 					<Outlet />
 				</main>
 			</div>
+
+			<nav className="hub-bottom-nav" aria-label="Quick navigation">
+				{bottomNav.map((n) => (
+					<NavLink key={n.to} to={n.to} className={({ isActive }) => `hub-bottom-link ${isActive ? 'active' : ''}`}>
+						<Icon name={n.icon} size={22} />
+						<span>{n.label}</span>
+						{n.badge && counts.needs_reply > 0 && <span className="hub-bottom-badge">{counts.needs_reply}</span>}
+					</NavLink>
+				))}
+				<button type="button" className={`hub-bottom-link ${menuOpen ? 'active' : ''}`} onClick={() => setMenuOpen(true)}>
+					<Icon name="menu" size={22} />
+					<span>Menu</span>
+				</button>
+			</nav>
 
 			{toast && (
 				<div className="hub-toast shadow" role="status">

@@ -64,7 +64,7 @@ export default function CompanyForm({ user }) {
 
 	const load = useCallback(async () => {
 		if (isNew) return;
-		const r = await api.get(`/wd/${encodeURIComponent(code)}`);
+		const r = await api.get(`/water-districts/${encodeURIComponent(code)}`);
 		if (!r.ok) {
 			setError(r.error || 'Water District not found.');
 			return;
@@ -78,7 +78,7 @@ export default function CompanyForm({ user }) {
 
 	const loadSnippet = useCallback(async () => {
 		if (isNew) return;
-		const r = await api.get(`/wd/${encodeURIComponent(code)}/connection`);
+		const r = await api.get(`/water-districts/${encodeURIComponent(code)}/connection`);
 		if (r.ok) setSnippet(r);
 	}, [code, isNew]);
 
@@ -92,14 +92,14 @@ export default function CompanyForm({ user }) {
 		e.preventDefault();
 		setSaving(true);
 		setError('');
-		const r = isNew ? await api.post('/wd', form) : await api.post(`/wd/${encodeURIComponent(code)}`, form);
+		const r = isNew ? await api.post('/water-districts', form) : await api.post(`/water-districts/${encodeURIComponent(code)}`, form);
 		setSaving(false);
 		if (!r.ok) {
 			setError(r.error || 'Could not save.');
 			return;
 		}
 		if (isNew) {
-			navigate(`/wd/${r.code}?tab=connection`, { replace: true, state: { created: true } });
+			navigate(`/water-districts/${r.code}?tab=connection`, { replace: true, state: { created: true } });
 			return;
 		}
 		setNotice('Changes saved.');
@@ -107,14 +107,14 @@ export default function CompanyForm({ user }) {
 	}
 
 	async function reveal() {
-		const r = await api.get(`/wd/${encodeURIComponent(code)}/token`);
+		const r = await api.get(`/water-districts/${encodeURIComponent(code)}/token`);
 		if (r.ok) setToken(r.token);
 		else setError(r.error || 'Could not read the token.');
 	}
 
 	async function rotate() {
 		setRotating(true);
-		const r = await api.post(`/wd/${encodeURIComponent(code)}/rotate-token`);
+		const r = await api.post(`/water-districts/${encodeURIComponent(code)}/rotate-token`);
 		setRotating(false);
 		setConfirmRotate(false);
 		if (!r.ok) {
@@ -145,7 +145,7 @@ export default function CompanyForm({ user }) {
 			<PageHeader icon="building" title={isNew ? 'Add Water District' : company?.name || code}
 				subtitle={isNew ? 'Register a new Water District so its app can send tickets to the hub'
 					: `${company?.code} · ${company?.status === 'active' ? 'Active' : 'Deactivated'} · created ${fmtDateTime(company?.created_at)}`}>
-				<Link to="/wd" className="btn btn-sm btn-light"><Icon name="back" size={15} className="mr-1" />All Water Districts</Link>
+				<Link to="/water-districts" className="btn btn-sm btn-light"><Icon name="back" size={15} className="mr-1" />All Water Districts</Link>
 			</PageHeader>
 			<Alert onClose={() => setError('')}>{error}</Alert>
 			<Alert type="success" onClose={() => setNotice('')}>{notice}</Alert>

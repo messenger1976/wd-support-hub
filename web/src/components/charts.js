@@ -13,5 +13,5 @@ Chart.defaults.maintainAspectRatio = false;
 
 export const gridless = {
 	x: { grid: { display: false } },
-	y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#f0eef4' } },
+	y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#edf2f6' } },
 };

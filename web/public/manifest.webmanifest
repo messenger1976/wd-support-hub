@@ -1,0 +1,26 @@
+{
+	"id": "/",
+	"name": "Water District Support Hub",
+	"short_name": "WD Support",
+	"description": "Support tickets, messaging and service reports for Water District billing systems.",
+	"start_url": "/?source=pwa",
+	"scope": "/",
+	"display": "standalone",
+	"orientation": "any",
+	"background_color": "#063f66",
+	"theme_color": "#0a5f92",
+	"lang": "en",
+	"categories": ["business", "productivity", "utilities"],
+	"icons": [
+		{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+		{ "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+		{ "src": "/icons/maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+		{ "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+		{ "src": "/logo.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+	],
+	"shortcuts": [
+		{ "name": "Inbox", "short_name": "Inbox", "url": "/inbox", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+		{ "name": "Dashboard", "short_name": "Dashboard", "url": "/dashboard", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+		{ "name": "Reports", "short_name": "Reports", "url": "/reports", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] }
+	]
+}

@@ -95,7 +95,7 @@ async function scopedCompany(req, res) {
 	return row;
 }
 
-router.get('/wd', requirePerm('companies.view'), async (req, res) => {
+router.get('/water-districts', requirePerm('companies.view'), async (req, res) => {
 	const scope = companyScope(req.user, 'c', 'code');
 	const rows = await query(
 		`SELECT c.*, ${STATS} FROM wd_support_company c WHERE ${scope.sql} ORDER BY c.status = 'active' DESC, c.name`,
@@ -105,13 +105,13 @@ router.get('/wd', requirePerm('companies.view'), async (req, res) => {
 	res.json({ ok: true, companies: rows.map((r) => present(r, req.user, ts)), hub_url: config.baseUrl, server_time: ts });
 });
 
-router.get('/wd/:code', requirePerm('companies.view'), async (req, res) => {
+router.get('/water-districts/:code', requirePerm('companies.view'), async (req, res) => {
 	const row = await scopedCompany(req, res);
 	if (!row) return undefined;
 	return res.json({ ok: true, company: present(row, req.user), server_time: now() });
 });
 
-router.post('/wd', requirePerm('companies.create'), async (req, res) => {
+router.post('/water-districts', requirePerm('companies.create'), async (req, res) => {
 	const code = str(req.body?.code).trim().toUpperCase();
 	if (!/^[A-Z0-9_]{2,32}$/.test(code)) {
 		return res.json({ ok: false, error: 'Code must be 2–32 capital letters, digits or underscores (e.g. DIPOLOG).' });
@@ -136,7 +136,7 @@ router.post('/wd', requirePerm('companies.create'), async (req, res) => {
 	return res.json({ ok: true, code });
 });
 
-router.post('/wd/:code', requirePerm('companies.edit'), async (req, res) => {
+router.post('/water-districts/:code', requirePerm('companies.edit'), async (req, res) => {
 	const row = await scopedCompany(req, res);
 	if (!row) return undefined;
 	const { data, error } = readCompany(req.body);
@@ -148,7 +148,7 @@ router.post('/wd/:code', requirePerm('companies.edit'), async (req, res) => {
 	return res.json({ ok: true });
 });
 
-router.post('/wd/:code/deactivate', requirePerm('companies.deactivate'), async (req, res) => {
+router.post('/water-districts/:code/deactivate', requirePerm('companies.deactivate'), async (req, res) => {
 	const row = await scopedCompany(req, res);
 	if (!row) return undefined;
 	const ts = now();
@@ -157,7 +157,7 @@ router.post('/wd/:code/deactivate', requirePerm('companies.deactivate'), async (
 	return res.json({ ok: true });
 });
 
-router.post('/wd/:code/activate', requirePerm('companies.deactivate'), async (req, res) => {
+router.post('/water-districts/:code/activate', requirePerm('companies.deactivate'), async (req, res) => {
 	const row = await scopedCompany(req, res);
 	if (!row) return undefined;
 	await query("UPDATE wd_support_company SET status = 'active', deactivated_at = NULL, updated_at = ? WHERE code = ?", [now(), row.code]);
@@ -165,7 +165,7 @@ router.post('/wd/:code/activate', requirePerm('companies.deactivate'), async (re
 	return res.json({ ok: true });
 });
 
-router.delete('/wd/:code', requirePerm('companies.deactivate'), async (req, res) => {
+router.delete('/water-districts/:code', requirePerm('companies.deactivate'), async (req, res) => {
 	const row = await scopedCompany(req, res);
 	if (!row) return undefined;
 	const used = await one(
@@ -185,14 +185,14 @@ router.delete('/wd/:code', requirePerm('companies.deactivate'), async (req, res)
 	return res.json({ ok: true });
 });
 
-router.get('/wd/:code/token', requirePerm('companies.token'), async (req, res) => {
+router.get('/water-districts/:code/token', requirePerm('companies.token'), async (req, res) => {
 	const row = await scopedCompany(req, res);
 	if (!row) return undefined;
 	await audit(req, 'wd.token_view', 'company', row.code);
 	return res.json({ ok: true, token: row.token });
 });
 
-router.post('/wd/:code/rotate-token', requirePerm('companies.token'), async (req, res) => {
+router.post('/water-districts/:code/rotate-token', requirePerm('companies.token'), async (req, res) => {
 	const row = await scopedCompany(req, res);
 	if (!row) return undefined;
 	const token = newToken(row.code);
@@ -203,7 +203,7 @@ router.post('/wd/:code/rotate-token', requirePerm('companies.token'), async (req
 });
 
 /** Ready-to-paste application/config/message_support.php for the WD app. */
-router.get('/wd/:code/connection', requirePerm('companies.view'), async (req, res) => {
+router.get('/water-districts/:code/connection', requirePerm('companies.view'), async (req, res) => {
 	const row = await scopedCompany(req, res);
 	if (!row) return undefined;
 	const showToken = can(req.user, 'companies.token');

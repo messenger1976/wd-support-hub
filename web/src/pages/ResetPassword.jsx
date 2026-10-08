@@ -39,12 +39,12 @@ export default function ResetPassword({ onDone }) {
 
 	return (
 		<AuthShell title="Reset password — WD Support Hub">
-			<h4 className="mb-1">Choose a new password</h4>
+			<h2>Choose a new password</h2>
 			<p className="text-muted mb-4">Reset links expire after use and after a short time window.</p>
 			{state.loading ? null : state.invalid ? (
 				<>
 					<div className="alert alert-danger">{state.invalid}</div>
-					<Link className="btn btn-danger btn-block" to="/forgot-password">Request a new link</Link>
+					<Link className="btn btn-primary btn-block" to="/forgot-password">Request a new link</Link>
 				</>
 			) : (
 				<form onSubmit={submit} autoComplete="off">
@@ -64,7 +64,7 @@ export default function ResetPassword({ onDone }) {
 						<input id="password_confirm" type="password" className="form-control" required minLength={10}
 							value={confirm} onChange={(e) => setConfirm(e.target.value)} />
 					</div>
-					<button type="submit" className="btn btn-danger btn-block" disabled={busy}>Update password</button>
+					<button type="submit" className="btn btn-primary btn-block" disabled={busy}>Update password</button>
 				</form>
 			)}
 			<div className="text-center mt-3"><Link to="/">Back to sign in</Link></div>

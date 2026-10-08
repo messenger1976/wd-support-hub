@@ -37,13 +37,15 @@ hub.use('/auth', hubAuth);
 hub.use(requireUser, hubInbox, hubDashboard, hubCompanies, hubReports, hubUsers, hubAudit);
 app.use('/api/hub', hub);
 
-// Firebase Messaging service worker, generated so the web config lives only in server/.env.
+// The hub's only service worker: PWA caching (web/public/pwa-sw.js) plus Firebase Messaging,
+// generated so the Firebase web config lives only in server/.env.
 app.get('/firebase-messaging-sw.js', (req, res) => {
 	const firebase = firebaseWebConfig();
 	res.type('application/javascript').set('Cache-Control', 'no-cache');
-	if (!firebase) return res.send('// Push notifications are not configured on this hub.\n');
+	const pwa = "importScripts('/pwa-sw.js');\n";
+	if (!firebase) return res.send(`${pwa}// Push notifications are not configured on this hub.\n`);
 	const { vapidKey, ...web } = firebase;
-	return res.send(`importScripts('https://www.gstatic.com/firebasejs/${FIREBASE_SDK_VERSION}/firebase-app-compat.js');
+	return res.send(`${pwa}importScripts('https://www.gstatic.com/firebasejs/${FIREBASE_SDK_VERSION}/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/${FIREBASE_SDK_VERSION}/firebase-messaging-compat.js');
 firebase.initializeApp(${JSON.stringify(web)});
 // Background notifications (notification payload + webpush link) are displayed by the SDK itself.
@@ -61,9 +63,17 @@ app.get('/index.php', (req, res) => {
 
 // React build (web/dist) with SPA fallback.
 const indexHtml = path.join(config.webDist, 'index.html');
-app.use(express.static(config.webDist, { index: false }));
+const NO_CACHE_FILES = new Set(['pwa-sw.js', 'manifest.webmanifest', 'offline.html']);
+app.use(express.static(config.webDist, {
+	index: false,
+	setHeaders(res, filePath) {
+		if (NO_CACHE_FILES.has(path.basename(filePath))) res.set('Cache-Control', 'no-cache');
+		else if (filePath.includes(`${path.sep}assets${path.sep}`)) res.set('Cache-Control', 'public, max-age=31536000, immutable');
+	},
+}));
 app.use((req, res, next) => {
-	if (req.method !== 'GET' || req.path.startsWith('/api')) return next();
+	// Missing files (e.g. an old hashed chunk) must 404, not get index.html cached in their place.
+	if (req.method !== 'GET' || req.path.startsWith('/api') || path.extname(req.path)) return next();
 	if (!fs.existsSync(indexHtml)) {
 		return res.status(503).type('text/plain').send('Web app is not built yet. Run "npm run build" in the repo root.');
 	}

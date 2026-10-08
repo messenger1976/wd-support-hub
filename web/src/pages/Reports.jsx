@@ -32,7 +32,7 @@ const SERIES_COLORS = {
 	d3: '#ffc241',
 	d7: '#fd7e14',
 	d30: '#dc3545',
-	replies: '#584475',
+	replies: '#0a6ba3',
 };
 
 function Cell({ col, value }) {
