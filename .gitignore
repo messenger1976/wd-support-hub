@@ -16,5 +16,9 @@ Thumbs.db
 vendor/
 composer.lock
 
-# Node (if any)
+# Node hub
 node_modules/
+web/dist/
+server/.env
+*.service-account.json
+firebase-service-account*.json

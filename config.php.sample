@@ -12,5 +12,14 @@ $hub_config = array(
 	'base_url' => 'https://support-hub.example.com/',
 	'sa4_url' => 'https://cdn.example.com/smartadmin-html-full/dist/',
 	'session_name' => 'wd_support_hub',
-	'upload_dir' => __DIR__ . '/uploads/'
+	'upload_dir' => __DIR__ . '/uploads/',
+
+	// local | production — local may surface reset link if mail cannot send
+	'app_env' => 'production',
+
+	// Password reset
+	'password_reset_ttl_minutes' => 60,
+	'password_reset_cooldown_seconds' => 90,
+	'mail_from' => 'noreply@example.com',
+	'mail_from_name' => 'WD Support Hub',
 );

@@ -34,11 +34,11 @@ Admin (`usertype == admin`) always has access. Sub-admins need `message_support 
 
 ## 4. Hub (once per vendor machine)
 
-1. Copy `c:\xampp\htdocs\wd-support-hub` (or this pack’s `hub/` files) onto the Super Admin host.
+1. Copy `c:\xampp\htdocs\wd-support-hub` onto the Super Admin host. It is a Node.js app since v2; see the hub `README.md` / `DEPLOY.md`.
 2. Run `sql/install_hub.sql` (creates database `wd_support_hub`).
-3. Open `http://localhost/wd-support-hub/`
-4. Sign in: **superadmin** / **SuperAdmin@2026** (change after first login).
-5. Register each new WD in `wd_support_company` (`code`, `name`, `token`) and put the same token in that WD’s `message_support.php`.
+3. Configure `server/.env`, then `npm install && npm run build && npm start`. Open `http://localhost:3000/`.
+4. Sign in: **superadmin** / **SuperAdmin@2026** (change it under **My account**).
+5. Register each new WD under **WD Setup → Add Water District**. Its **Connection** tab generates the complete `message_support.php` (hub URL, company code, ticket prefix and API token) — copy that file into the WD app instead of editing the template by hand. A deactivated WD's token is refused until it is activated again.
 
 Default companies:
 

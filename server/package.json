@@ -1,0 +1,27 @@
+{
+  "name": "wd-support-hub-server",
+  "version": "2.0.0",
+  "private": true,
+  "description": "WD Support Hub API (Express + MySQL + Firebase Cloud Messaging)",
+  "type": "module",
+  "main": "src/index.js",
+  "engines": {
+    "node": ">=18.18"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "hash-password": "node scripts/hash-password.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^16.4.5",
+    "express": "^5.1.0",
+    "firebase-admin": "^12.7.0",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.0.2",
+    "mysql2": "^3.11.4",
+    "nodemailer": "^6.9.16"
+  }
+}

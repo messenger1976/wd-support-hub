@@ -10,7 +10,8 @@ class messagesupport extends CI_Controller {
 		parent::__construct();
 		$this->load->model('messagesupport_model', 'my_model');
 		$this->load->model('adminheader_model', 'top_model');
-		ini_set('date.timezone', 'Asia/Manila');
+		// The autoloaded TCPDF library calls date_default_timezone_set('UTC'), which ini_set() cannot override.
+		date_default_timezone_set('Asia/Manila');
 		$this->_require_access();
 	}
 

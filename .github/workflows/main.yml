@@ -40,3 +40,8 @@ jobs:
             DEPLOY.md
             config.php.sample
             README.md
+            server/**
+            web/**
+            node_modules/**
+            package.json
+            package-lock.json

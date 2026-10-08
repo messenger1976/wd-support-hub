@@ -11,6 +11,9 @@ $company = hub_company_by_token($token);
 if ( ! $company) {
 	hub_json(array('ok' => FALSE, 'error' => 'Invalid company token.'), 401);
 }
+if (isset($company['status']) && $company['status'] !== 'active') {
+	hub_json(array('ok' => FALSE, 'error' => 'This Water District is deactivated on the support hub.'), 401);
+}
 
 $code = $company['code'];
 $action = isset($_GET['action']) ? $_GET['action'] : '';
@@ -79,7 +82,7 @@ hub_json(array('ok' => FALSE, 'error' => 'Unknown action'), 404);
 
 function hub_upsert_ticket($db, $code, $ticket) {
 	$uuid = hub_esc($ticket['uuid']);
-	$exists = $db->query("SELECT id FROM wd_support_ticket WHERE uuid = '".$uuid."' LIMIT 1");
+	$exists = $db->query("SELECT id, status FROM wd_support_ticket WHERE uuid = '".$uuid."' LIMIT 1");
 	$row = $exists ? $exists->fetch_assoc() : NULL;
 	$now = hub_esc(hub_now());
 	$fields = array(
@@ -98,16 +101,30 @@ function hub_upsert_ticket($db, $code, $ticket) {
 		'updated_at' => $now
 	);
 	if ($row) {
+		$stamps = $row['status'] === $fields['status'] ? '' : hub_status_stamps_sql($fields['status'], $now);
 		$db->query("UPDATE wd_support_ticket SET
 			ticket_no='{$fields['ticket_no']}', subject='{$fields['subject']}', category='{$fields['category']}',
 			priority='{$fields['priority']}', status='{$fields['status']}', user_name='{$fields['user_name']}',
 			usertype='{$fields['usertype']}', last_message_at='{$fields['last_message_at']}',
-			unread_support=1, updated_at='{$fields['updated_at']}'
+			unread_support=1, updated_at='{$fields['updated_at']}'{$stamps}
 			WHERE id=".(int) $row['id']);
 	} else {
-		$db->query("INSERT INTO wd_support_ticket (uuid, company_code, ticket_no, subject, category, priority, status, user_id, user_name, usertype, last_message_at, unread_client, unread_support, created_at, updated_at)
-			VALUES ('".$uuid."','{$fields['company_code']}','{$fields['ticket_no']}','{$fields['subject']}','{$fields['category']}','{$fields['priority']}','{$fields['status']}',{$fields['user_id']},'{$fields['user_name']}','{$fields['usertype']}','{$fields['last_message_at']}',0,1,'{$now}','{$fields['updated_at']}')");
+		$resolved = $fields['status'] === 'resolved' ? "'{$now}'" : 'NULL';
+		$closed = $fields['status'] === 'closed' ? "'{$now}'" : 'NULL';
+		$db->query("INSERT INTO wd_support_ticket (uuid, company_code, ticket_no, subject, category, priority, status, user_id, user_name, usertype, last_message_at, resolved_at, closed_at, unread_client, unread_support, created_at, updated_at)
+			VALUES ('".$uuid."','{$fields['company_code']}','{$fields['ticket_no']}','{$fields['subject']}','{$fields['category']}','{$fields['priority']}','{$fields['status']}',{$fields['user_id']},'{$fields['user_name']}','{$fields['usertype']}','{$fields['last_message_at']}',{$resolved},{$closed},0,1,'{$now}','{$fields['updated_at']}')");
 	}
+}
+
+/** SLA timestamps for a status change; mirrors statusTimestamps() in server/src/util.js. */
+function hub_status_stamps_sql($status, $now) {
+	if ($status === 'resolved') {
+		return ", resolved_at='{$now}', closed_at=NULL";
+	}
+	if ($status === 'closed') {
+		return ", closed_at='{$now}'";
+	}
+	return ', resolved_at=NULL, closed_at=NULL';
 }
 
 function hub_upsert_message($db, $code, $payload) {
